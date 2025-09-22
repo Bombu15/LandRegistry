@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>Land Registry DApp</title>
+	<link rel="preconnect" href="https://esm.sh" crossorigin />
+	<style>
+		:root{
+			--bg:#0b0f14;
+			--panel:rgba(255,255,255,.06);
+			--panel-strong:rgba(255,255,255,.12);
+			--text:#eef2f7;
+			--muted:#9aa5b1;
+			--primary:#7c9eff;
+			--primary-2:#8af3ff;
+			--success:#22c55e;
+			--warning:#f59e0b;
+			--danger:#ef4444;
+			--ring: rgba(124,158,255,.45);
+			--shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+			--radius:16px;
+		}
+		*{box-sizing:border-box}
+		html,body{height:100%}
+		body{
+			margin:0;
+			font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+			background:
+				radial-gradient(1200px 600px at 10% -10%, #14213d 0%, rgba(20,33,61,0) 70%),
+				radial-gradient(1000px 600px at 110% 10%, #0b7285 0%, rgba(11,114,133,0) 60%),
+				radial-gradient(900px 500px at -10% 110%, #1e293b 0%, rgba(30,41,59,0) 60%),
+				var(--bg);
+			color:var(--text);
+			-webkit-font-smoothing:antialiased;
+			line-height:1.45;
+		}
+		header{
+			background: linear-gradient(135deg, rgba(124,158,255,.25), rgba(138,243,255,.2));
+			border-bottom:1px solid rgba(255,255,255,.08);
+			backdrop-filter: blur(6px);
+			position: sticky; top:0; z-index:10;
+		}
+		.header-inner{
+			max-width:1100px; margin:0 auto; padding:18px 20px; display:flex; align-items:center; justify-content:space-between;
+		}
+		.brand{display:flex; align-items:center; gap:12px; font-weight:700; letter-spacing:.2px}
+		.brand .logo{
+			width:36px; height:36px; border-radius:10px;
+			background: conic-gradient(from 180deg at 50% 50%, var(--primary), var(--primary-2), #22d3ee, var(--primary));
+			box-shadow: 0 8px 18px rgba(124,158,255,.35), inset 0 1px 0 rgba(255,255,255,.25);
+		}
+		.header-actions{display:flex; gap:10px; align-items:center}
+		.btn{
+			padding:10px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.12); color:var(--text);
+			background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+			box-shadow: var(--shadow);
+			cursor:pointer; transition: transform .06s ease, box-shadow .2s ease, background .2s ease; font-weight:600;
+		}
+		.btn:hover{ transform: translateY(-1px); }
+		.btn:active{ transform: translateY(0); }
+		.btn.primary{
+			border-color: rgba(124,158,255,.55);
+			background: linear-gradient(180deg, rgba(124,158,255,.28), rgba(124,158,255,.18));
+		}
+		.btn:disabled{opacity:.6; cursor:not-allowed}
+		.container{ max-width:1100px; margin:24px auto; padding:0 20px; }
+		.grid{ display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+		.card{
+			background: var(--panel);
+			border:1px solid rgba(255,255,255,.10);
+			border-radius: var(--radius);
+			box-shadow: var(--shadow);
+			padding:16px;
+		}
+		.card h3{ margin:4px 0 10px; font-size:18px }
+		label{ display:block; font-size:12px; color:var(--muted); margin:8px 0 6px; }
+		input, select, textarea{
+			width:100%; padding:12px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.14);
+			background: rgba(255,255,255,.03); color:var(--text); outline:none;
+			box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+		}
+		input:focus, select:focus, textarea:focus{
+			border-color: var(--primary);
+			box-shadow: 0 0 0 4px var(--ring);
+		}
+		.row{display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap}
+		pre{
+			background: rgba(0,0,0,.35); padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.10);
+			max-height:220px; overflow:auto; margin-top:10px; font-size:12px;
+		}
+		.badge{ display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:6px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); }
+		footer{ opacity:.7; font-size:12px; text-align:center; margin:28px 0 10px }
+		.toast-wrap{ position:fixed; right:16px; bottom:16px; display:flex; flex-direction:column; gap:10px; z-index:50 }
+		.toast{
+			background: #0f172a; color:#e2e8f0; border:1px solid rgba(255,255,255,.12);
+			padding:10px 12px; border-radius:12px; box-shadow: var(--shadow); min-width:240px;
+			display:flex; align-items:flex-start; gap:10px; opacity:0; transform: translateY(8px);
+			animation: toast-in .25s ease forwards;
+		}
+		.toast.success{ border-color: rgba(34,197,94,.45) }
+		.toast.error{ border-color: rgba(239,68,68,.45) }
+		@keyframes toast-in{ to{ opacity:1; transform: translateY(0) } }
+		.small{ color:var(--muted); font-size:12px }
+	</style>
+</head>
+<body>
+	<header>
+		<div class="header-inner">
+			<div class="brand">
+				<div class="logo"></div>
+				<div>Land Registry</div>
+			</div>
+			<div class="header-actions">
+				<span id="network" class="badge">Network: <strong id="netName">—</strong></span>
+				<button id="connect" class="btn primary">Connect Wallet</button>
+			</div>
+		</div>
+	</header>
+
+	<div class="container">
+		<div class="grid">
+			<div class="card">
+				<h3>Derive Property ID</h3>
+				<label>External ID</label>
+				<input id="externalId" placeholder="PLOT-123-XYZ" />
+				<button id="deriveId" class="btn" style="margin-top:10px;">Compute</button>
+				<pre id="derivedId"></pre>
+			</div>
+
+			<div class="card">
+				<h3>Register Property <span class="small">(Admin)</span></h3>
+				<label>External ID</label>
+				<input id="regExternalId" placeholder="PLOT-123-XYZ" />
+				<label>Owner Address</label>
+				<input id="regOwner" placeholder="0x..." />
+				<label>Metadata URI</label>
+				<input id="regUri" placeholder="ipfs://Qm..." />
+				<button id="registerBtn" class="btn primary" style="margin-top:10px;">Register</button>
+				<pre id="registerOut"></pre>
+			</div>
+
+			<div class="card">
+				<h3>Transfer Property</h3>
+				<label>Property ID (bytes32)</label>
+				<input id="trPropId" placeholder="0x..." />
+				<label>New Owner</label>
+				<input id="trNewOwner" placeholder="0x..." />
+				<label>Note</label>
+				<input id="trNote" placeholder="sale 2025-09-22" />
+				<button id="transferBtn" class="btn primary" style="margin-top:10px;">Transfer</button>
+				<pre id="transferOut"></pre>
+			</div>
+
+			<div class="card">
+				<h3>Verify</h3>
+				<div class="row">
+					<input id="vPropId" placeholder="propertyId (0x...)" style="flex:1" />
+					<button id="getPropBtn" class="btn">Get Property</button>
+					<button id="getHistBtn" class="btn">Get History</button>
+				</div>
+				<pre id="verifyOut"></pre>
+			</div>
+
+			<div class="card">
+				<h3>Admin Controls</h3>
+				<label>Property ID</label>
+				<input id="admPropId" placeholder="0x..." />
+				<div class="row">
+					<div style="flex:1">
+						<label>Active</label>
+						<select id="admActive">
+							<option value="true">true</option>
+							<option value="false">false</option>
+						</select>
+					</div>
+					<div style="flex:2">
+						<label>New Metadata URI</label>
+						<input id="admUri" placeholder="ipfs://..." />
+					</div>
+				</div>
+				<div class="row" style="margin-top:10px;">
+					<button id="setActiveBtn" class="btn">Set Active</button>
+					<button id="setMetaBtn" class="btn">Update Metadata</button>
+				</div>
+				<pre id="adminOut"></pre>
+			</div>
+		</div>
+
+		<footer>Made with ❤️ for secure, transparent land ownership.</footer>
+	</div>
+
+	<div class="toast-wrap" id="toasts"></div>
+
+	<script type="module">
+		import { createPublicClient, createWalletClient, custom, formatEther, getAddress, keccak256, toHex } from "https://esm.sh/viem@2.8.6";
+		import { polygonAmoy, sepolia } from "https://esm.sh/viem@2.8.6/chains";
+
+		// Your deployed contract address
+		const CONTRACT_ADDRESS = "0x867c525d6b05b890a9aca148ab7ad048e6007342";
+
+		// Load ABI from abi.json
+		const ABI = await fetch('./abi.json').then(r => r.json());
+
+		// Detect connected chain from wallet, then pick known chain object
+		const provider = window.ethereum;
+		if (!provider) {
+			alert("Please install MetaMask to use this app.");
+			throw new Error("No wallet");
+		}
+		const hexChainId = await provider.request({ method: "eth_chainId" });
+		const chainId = parseInt(hexChainId, 16);
+		const KNOWN_CHAINS = [polygonAmoy, sepolia];
+		const CHAIN = KNOWN_CHAINS.find(c => c.id === chainId) || sepolia;
+
+		const publicClient = createPublicClient({ chain: CHAIN, transport: custom(provider) });
+		const walletClient = createWalletClient({ chain: CHAIN, transport: custom(provider) });
+
+		const $ = (id) => document.getElementById(id);
+		const out = (id, data) => $(id).textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+
+		// Toasts
+		function toast(message, type="success"){
+			const wrap = $("toasts");
+			const el = document.createElement("div");
+			el.className = `toast ${type}`;
+			el.textContent = message;
+			wrap.appendChild(el);
+			setTimeout(() => el.remove(), 3500);
+		}
+
+		function busy(button, isBusy){
+			button.disabled = isBusy;
+			button.textContent = isBusy ? "Working..." : button.dataset.label || button.textContent;
+		}
+		document.querySelectorAll(".btn").forEach(b => { b.dataset.label = b.textContent });
+
+		$("netName").textContent = CHAIN.name;
+
+		async function connect() {
+			try {
+				const [account] = await provider.request({ method: "eth_requestAccounts" });
+				const bal = await publicClient.getBalance({ address: account });
+				$("connect").textContent = "Connected";
+				$("connect").disabled = true;
+				toast(`Connected: ${account.slice(0,6)}…${account.slice(-4)} — ${formatEther(bal)} ETH/MATIC`);
+				return account;
+			} catch (e) {
+				toast(e.message || "Failed to connect", "error");
+				throw e;
+			}
+		}
+
+		$("connect").onclick = connect;
+
+		$("deriveId").onclick = () => {
+			try{
+				const externalId = $("externalId").value.trim();
+				if (!externalId) throw new Error("Enter an externalId");
+				const pid = keccak256(toHex(externalId));
+				out("derivedId", pid);
+				toast("Computed propertyId");
+			}catch(e){ out("derivedId", e.message); toast(e.message, "error"); }
+		};
+
+		function parseBytes32(input) {
+			const v = input.trim();
+			if (!v.startsWith("0x") || v.length !== 66) throw new Error("propertyId must be 0x + 64 hex chars");
+			return v;
+		}
+
+		async function write(fn, args, btn, successMsg) {
+			const account = await connect();
+			try{
+				busy(btn, true);
+				const hash = await walletClient.writeContract({ address: CONTRACT_ADDRESS, abi: ABI, functionName: fn, args, account });
+				toast("Txn sent, waiting…");
+				const receipt = await publicClient.waitForTransactionReceipt({ hash });
+				toast(successMsg || "Transaction confirmed");
+				return { hash, receipt };
+			} finally {
+				busy(btn, false);
+			}
+		}
+
+		async function read(fn, args) {
+			return await publicClient.readContract({ address: CONTRACT_ADDRESS, abi: ABI, functionName: fn, args });
+		}
+
+		$("registerBtn").onclick = async (ev) => {
+			const btn = ev.currentTarget;
+			try {
+				const externalId = $("regExternalId").value.trim();
+				const owner = getAddress($("regOwner").value.trim());
+				const uri = $("regUri").value.trim();
+				if (!externalId || !uri) throw new Error("externalId and metadataUri are required");
+				const res = await write("registerProperty", [externalId, owner, uri], btn, "Property registered");
+				out("registerOut", res);
+			} catch (e) {
+				out("registerOut", e.message || String(e));
+				toast(e.message || "Failed to register", "error");
+			}
+		};
+
+		$("transferBtn").onclick = async (ev) => {
+			const btn = ev.currentTarget;
+			try {
+				const pid = parseBytes32($("trPropId").value);
+				const to = getAddress($("trNewOwner").value.trim());
+				const note = $("trNote").value.trim();
+				const res = await write("transferProperty", [pid, to, note], btn, "Property transferred");
+				out("transferOut", res);
+			} catch (e) {
+				out("transferOut", e.message || String(e));
+				toast(e.message || "Failed to transfer", "error");
+			}
+		};
+
+		$("getPropBtn").onclick = async () => {
+			try {
+				const pid = parseBytes32($("vPropId").value);
+				const prop = await read("getProperty", [pid]);
+				out("verifyOut", prop);
+				toast("Fetched property");
+			} catch (e) {
+				out("verifyOut", e.message || String(e));
+				toast(e.message || "Failed to fetch property", "error");
+			}
+		};
+
+		$("getHistBtn").onclick = async () => {
+			try {
+				const pid = parseBytes32($("vPropId").value);
+				const hist = await read("getOwnershipHistory", [pid]);
+				out("verifyOut", hist);
+				toast("Fetched history");
+			} catch (e) {
+				out("verifyOut", e.message || String(e));
+				toast(e.message || "Failed to fetch history", "error");
+			}
+		};
+
+		$("setActiveBtn").onclick = async (ev) => {
+			const btn = ev.currentTarget;
+			try {
+				const pid = parseBytes32($("admPropId").value);
+				const active = $("admActive").value === "true";
+				const res = await write("setPropertyActive", [pid, active], btn, "Status updated");
+				out("adminOut", res);
+			} catch (e) {
+				out("adminOut", e.message || String(e));
+				toast(e.message || "Failed to set active", "error");
+			}
+		};
+
+		$("setMetaBtn").onclick = async (ev) => {
+			const btn = ev.currentTarget;
+			try {
+				const pid = parseBytes32($("admPropId").value);
+				const uri = $("admUri").value.trim();
+				if (!uri) throw new Error("Enter new metadata URI");
+				const res = await write("updateMetadata", [pid, uri], btn, "Metadata updated");
+				out("adminOut", res);
+			} catch (e) {
+				out("adminOut", e.message || String(e));
+				toast(e.message || "Failed to update metadata", "error");
+			}
+		};
+	</script>
+</body>
+</html>
