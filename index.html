@@ -197,7 +197,8 @@
 		import { polygonAmoy, sepolia } from "https://esm.sh/viem@2.8.6/chains";
 
 		// Your deployed contract address
-		const CONTRACT_ADDRESS = "0x867c525d6b05b890a9aca148ab7ad048e6007342";
+		
+		const CONTRACT_ADDRESS = "0x0e3c8fb58b44e4012122712d19410dea2d520a52";
 
 		// Load ABI from abi.json
 		const ABI = await fetch('./abi.json').then(r => r.json());
@@ -217,7 +218,17 @@
 		const walletClient = createWalletClient({ chain: CHAIN, transport: custom(provider) });
 
 		const $ = (id) => document.getElementById(id);
-		const out = (id, data) => $(id).textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+		const out = (id, data) => {
+			if (typeof data === "string") {
+				$(id).textContent = data;
+			} else {
+				// Handle BigInt serialization
+				const jsonString = JSON.stringify(data, (key, value) =>
+					typeof value === 'bigint' ? value.toString() : value, 2
+				);
+				$(id).textContent = jsonString;
+			}
+		};
 
 		// Toasts
 		function toast(message, type="success"){
@@ -276,8 +287,40 @@
 				const hash = await walletClient.writeContract({ address: CONTRACT_ADDRESS, abi: ABI, functionName: fn, args, account });
 				toast("Txn sent, waiting…");
 				const receipt = await publicClient.waitForTransactionReceipt({ hash });
+				
+				// Check if transaction reverted
+				if (receipt.status === 'reverted') {
+					// Try to get the revert reason
+					try {
+						// Simulate the transaction to get revert reason
+						await publicClient.simulateContract({
+							address: CONTRACT_ADDRESS,
+							abi: ABI,
+							functionName: fn,
+							args,
+							account
+						});
+					} catch (simulateError) {
+						// Extract revert reason from error
+						const errorMessage = simulateError.message || simulateError.toString();
+						if (errorMessage.includes('Only admin can perform this action')) {
+							throw new Error('Only admin can perform this action');
+						} else if (errorMessage.includes('External ID already used')) {
+							throw new Error('External ID already used');
+						} else if (errorMessage.includes('Not the owner')) {
+							throw new Error('Not the owner');
+						} else {
+							throw new Error(`Transaction failed: ${errorMessage}`);
+						}
+					}
+					throw new Error('Transaction reverted');
+				}
+				
 				toast(successMsg || "Transaction confirmed");
 				return { hash, receipt };
+			} catch (error) {
+				// Re-throw the error so it can be caught by the calling function
+				throw error;
 			} finally {
 				busy(btn, false);
 			}
@@ -294,6 +337,27 @@
 				const owner = getAddress($("regOwner").value.trim());
 				const uri = $("regUri").value.trim();
 				if (!externalId || !uri) throw new Error("externalId and metadataUri are required");
+				
+				// First try to simulate the transaction to get a better error message
+				try {
+					await publicClient.simulateContract({
+						address: CONTRACT_ADDRESS,
+						abi: ABI,
+						functionName: "registerProperty",
+						args: [externalId, owner, uri],
+						account: await connect()
+					});
+				} catch (simulateError) {
+					const errorMessage = simulateError.message || simulateError.toString();
+					if (errorMessage.includes('Only admin can perform this action')) {
+						throw new Error('Only admin can perform this action');
+					} else if (errorMessage.includes('External ID already used')) {
+						throw new Error('External ID already used');
+					} else {
+						throw new Error(`Transaction will fail: ${errorMessage}`);
+					}
+				}
+				
 				const res = await write("registerProperty", [externalId, owner, uri], btn, "Property registered");
 				out("registerOut", res);
 			} catch (e) {
@@ -366,6 +430,7 @@
 				toast(e.message || "Failed to update metadata", "error");
 			}
 		};
+
 	</script>
 </body>
 </html>
